@@ -83,6 +83,23 @@ export interface CSSOptions {
    * @experimental
    */
   transformer?: 'postcss' | 'lightningcss'
+  
+  /**
+   * https://github.com/postcss/postcss-import
+   */
+  import?: {
+    /**
+     * Function to filter if an import should be nested by the postcss-import module.
+     *
+     * @param path the path of the import (the exact string in your source code)
+     * @returns `true` if the import should be nested, `false` otherwise
+     *
+     * @default `() => true`
+     *
+     * @see https://github.com/postcss/postcss-import#filter
+     */
+    filter?: (path: string) => boolean;
+  };
   /**
    * https://github.com/css-modules/postcss-modules
    */
@@ -961,7 +978,7 @@ async function compileCSS(
     return compileLightningCSS(id, code, config, urlReplacer)
   }
 
-  const { modules: modulesOptions, devSourcemap } = config.css || {}
+  const { import: importOptions, modules: modulesOptions, devSourcemap } = config.css || {}
   const isModule = modulesOptions !== false && cssModuleRE.test(id)
   // although at serve time it can work without processing, we do need to
   // crawl them in order to register watch dependencies.
@@ -1008,6 +1025,7 @@ async function compileCSS(
   if (needInlineImport) {
     postcssPlugins.unshift(
       (await importPostcssImport()).default({
+        ...importOptions,
         async resolve(id, basedir) {
           const publicFile = checkPublicFile(id, config)
           if (publicFile) {
